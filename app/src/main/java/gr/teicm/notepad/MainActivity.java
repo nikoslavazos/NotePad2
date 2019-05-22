@@ -17,6 +17,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
@@ -25,25 +26,31 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import gr.teicm.notepad.Model.CustomFileAdapter;
+import gr.teicm.notepad.Model.CustomNotes;
 import gr.teicm.notepad.Repository.EditNotes;
 import gr.teicm.notepad.Repository.ShowNote;
 
 public class MainActivity extends AppCompatActivity {
 
     private List<String> files = new ArrayList<>();
+    private List<String> dates = new ArrayList<>();
     private ListView listView;
+    ArrayList<CustomNotes> customNotes = new ArrayList<>();
+    CustomFileAdapter customFileAdapter;
 
-    private ArrayAdapter<String> adapter;
     String path ;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         path = this.getFilesDir().getPath() +"/";
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
+        date();
         listView = findViewById(R.id.fileList);
         listView.setLongClickable(true);
         setSupportActionBar(toolbar);
@@ -53,15 +60,14 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent intent=new Intent(MainActivity.this, EditNotes.class);
                         startActivity(intent);
+                        onRestart();
             }
         });
 
-
+        customFileAdapter = new CustomFileAdapter(this,R.layout.content_main,customNotes);
         listFilesForFolder();
-        adapter=new ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_1,
-                files);
-        listView.setAdapter(adapter);
+        listView.setAdapter(customFileAdapter);
+
 
         listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             public boolean onItemLongClick(final AdapterView<?> parent, View view, final int position, long id) {
@@ -74,9 +80,12 @@ public class MainActivity extends AppCompatActivity {
                 alertDialogBuilder.setCancelable(true)
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                File file = new File(path+parent.getItemAtPosition(position)+".txt");
+                                CustomNotes note = (CustomNotes) parent.getItemAtPosition(position);
+                                String name = note.getName();
+                                File file = new File(path+name+".txt");
                                 file.delete();
                                 onRestart();
+
                             }
                         })
                         .setNegativeButton("Cancel",
@@ -95,12 +104,12 @@ public class MainActivity extends AppCompatActivity {
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
-                String name = (String) parent.getItemAtPosition(position);
+                CustomNotes note = (CustomNotes) parent.getItemAtPosition(position);
+                String name = note.getName();
                 Intent i = new Intent(MainActivity.this, ShowNote.class);
                 i.putExtra("fileData",Open(name+".txt"));
                 i.putExtra("fileName",name+ ".txt");
                 startActivity(i);
-
             }
 
         });
@@ -112,22 +121,31 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onRestart() {
         super.onRestart();
-        files.clear();
+        customNotes.clear();
         listFilesForFolder();
-        adapter=new ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_1,
-                files);
-        listView.setAdapter(adapter);
+        customFileAdapter = new CustomFileAdapter(this,R.layout.content_main,customNotes);
+        listView.setAdapter(customFileAdapter);
     }
 
     public void listFilesForFolder() {
         File folder = new File(this.getFilesDir().getPath());
+        Date date;
+
         for (final File fileEntry : folder.listFiles()) {
+            date = new Date(fileEntry.lastModified());
             files.add(fileEntry.getName().replace(".txt",""));
+            customNotes.add(new CustomNotes(fileEntry.getName().replace(".txt",""),date.toString()));
         }
     }
 
+public void date(){
+    File folder = new File(this.getFilesDir().getPath());
+    for (final File fileEntry : folder.listFiles()) {
 
+        Date date = new Date(fileEntry.lastModified());
+        dates.add(date.toString());
+    }
+}
 
 
 
